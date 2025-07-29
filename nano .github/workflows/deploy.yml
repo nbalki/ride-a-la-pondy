@@ -1,1 +1,35 @@
+name: Deploy to GitHub Pages
 
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Build with routing fix
+        run: |
+          npm run build
+          # Fix for client-side routing
+          cp dist/index.html dist/404.html
+          # Fix for asset paths
+          sed -i 's/\/assets/\/ride-a-la-pondy\/assets/g' dist/index.html
+        env:
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+          
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
