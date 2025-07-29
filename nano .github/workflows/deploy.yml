@@ -4,9 +4,17 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       
@@ -18,18 +26,21 @@ jobs:
       - name: Install dependencies
         run: npm install
         
-      - name: Build with routing fix
+      - name: Build with fixes
         run: |
           npm run build
-          # Fix for client-side routing
+          # Fix client-side routing
           cp dist/index.html dist/404.html
-          # Fix for asset paths
-          sed -i 's/\/assets/\/ride-a-la-pondy\/assets/g' dist/index.html
+          # Fix asset paths
+          find dist -type f -exec sed -i 's/\/assets/\/ride-a-la-pondy\/assets/g' {} +
         env:
           VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
           
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          path: dist
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
